@@ -2,9 +2,8 @@
 .env
 key.env
 
-# Data files (regenerable via scripts)
-*.csv
-*.json
+# Progress file (large, regenerable)
+scopus_progress.json
 
 # macOS
 .DS_Store
