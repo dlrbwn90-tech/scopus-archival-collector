@@ -43,11 +43,11 @@ Tognini-Bonelli(2001)와 Baker et al.(2008)의 **corpus-assisted hybrid approach
 
 - SCImago Journal Rank(SJR) 2024 기준 Library and Information Sciences(ASJC 3309) 분야 상위 저널 중 기록학 관련 저널 선별
 - Scopus API를 통한 전체 기간 수집 가능 여부를 최종 포함 기준으로 적용
-- Archives and Manuscripts는 Scopus 등재가 2013년부터로 한정되고 2022년 플랫폼 이전으로 전체 기간 수집이 불가하여 **제외**
+- *Archives and Manuscripts*는 Scopus 등재가 2013년부터로 한정되고 2022년 플랫폼 이전으로 전체 기간 수집이 불가하여 **제외**
 
 #### 분석 기간 설정 근거
 
-4개 저널 중 가장 늦은 창간 연도인 Archival Science(2001년)를 기준으로 분석 기간을 **2001년–현재**로 통일하였다. 이를 통해 저널 간 비교 가능성을 확보하고, 초록 누락률을 41.1%에서 18.1%로 낮추었다.
+4개 저널 중 가장 늦은 창간 연도인 *Archival Science*(2001년)를 기준으로 분석 기간을 **2001년–현재**로 통일하였다. 이를 통해 저널 간 비교 가능성을 확보하고, 초록 누락률을 41.1%에서 18.1%로 낮추었다.
 
 #### 초록 누락 처리
 
@@ -55,17 +55,30 @@ Tognini-Bonelli(2001)와 Baker et al.(2008)의 **corpus-assisted hybrid approach
 
 #### 전처리 계획 (Preprocessing Pipeline)
 
-현재 진행 중이며, 아래 도구를 활용한 전처리 파이프라인을 구축할 예정이다.
+### 진행 현황
 
-| 단계 | 도구 | 내용 |
+| 단계 | 스크립트 | 내용 | 상태 |
+|------|---------|------|:----:|
+| 1 | `01_basic_cleaning.py` | 소문자화, HTML 태그·특수문자 제거, 공백 정규화 | ✅ 완료 |
+| 2 | `02_tokenization.py` | 토큰화, 표제어 추출(spaCy), 품사 필터링 | ✅ 완료 |
+| 3 | 불용어 제거 | — | ⏭️ 건너뜀 |
+| 4 | 복합어 보존 | 핵심 분석 용어 복합어 처리 | 🔜 분석 단계에서 처리 |
+
+### 불용어 제거 건너뜀 근거
+
+`frequency_analysis.py`를 통해 상위 200개 단어를 검토한 결과, 불용어 제거의 효과가 본 연구의 분석 목적에 비해 제한적인 것으로 판단하였다.
+
+본 연구의 핵심 분석 목적은 **하드웨어·물질성 관련 용어의 구조적 부재 실증**이다. 이 목적에서 범용 형용사·동사 제거는 키워드 빈도 분석 및 공기어 분석에 실질적 영향을 미치지 않는다. 토픽 모델링(LDA/BERTopic) 단계에서 필요 시 해당 분석에 한정하여 불용어를 적용할 예정이다.
+
+또한 `archival material`, `trusted computing`, `hardware layer`와 같은 복합 표현을 보존하기 위해 명사류 불용어 처리를 보류하였다.
+
+### 사용 도구
+
+| 단계 | 도구 | 역할 |
 |------|------|------|
-| 기본 정제 | Python | 특수문자 제거, 소문자화, 공백 정규화 |
-| 토큰화 / 표제어 추출 | spaCy | Lemmatization, 품사 태깅 |
-| 불용어 제거 | spaCy + 도메인 불용어 사전 | 일반 불용어 + 기록학 도메인 불용어 처리 |
-| 키워드·공기어 분석 | AntConc | 콘코던스, 빈도, n-gram (Baker et al., 2008) |
+| 기본 정제 · 토큰화 | spaCy 3.7.4 (en_core_web_sm) | 표제어 추출, 품사 태깅 |
+| 키워드 · 공기어 분석 | AntConc | 콘코던스, 빈도, n-gram |
 | 토픽 모델링 | Gensim (BERTopic 검토 중) | LDA 기반 주제 분류 |
-
-> **참고:** spaCy와 AntConc의 병행 사용은 최근 코퍼스 연구의 표준적 조합으로, 전처리 자동화(spaCy)와 탐색적 텍스트 분석(AntConc)의 역할을 분담한다.
 
 ### 참고문헌
 
@@ -78,7 +91,7 @@ Tognini-Bonelli(2001)와 Baker et al.(2008)의 **corpus-assisted hybrid approach
 
 SCImago Journal & Country Rank 데이터 출처:
 
-> SCImago. (n.d.). SJR — SCImago Journal & Country Rank [Portal]. Retrieved April 2025, from https://www.scimagojr.com
+> SCImago. (n.d.). SJR — SCImago Journal & Country Rank [Portal]. Retrieved April 2026, from https://www.scimagojr.com
 
 ---
 
@@ -106,63 +119,78 @@ SCImago Journal & Country Rank 데이터 출처:
 
 ## 2. 데이터 처리 흐름
 
-아래 도표는 전체 데이터 수집·정제 과정을 나타냅니다.
-
 ```
 scopus_abstract_collector.py
 │
 │  [1단계] Scopus Search API → 전기간 메타데이터 수집
 │  [2단계] Abstract Retrieval API → EID별 초록 수집
 │
-├─→ scopus_abstracts_top5.csv (통합 원본: 4,047건, 초록 2,419건)
+└─→ scopus_abstracts_top5.csv (통합 원본: 4,047건, 초록 2,419건)
+```
+
+| 저널 | 전체 | 초록 있음 | 초록 없음 | 누락률 |
+|------|-----:|--------:|--------:|------:|
+| American Archivist | 2,079 | 829 | 1,250 | 60.1% |
+| Archival Science | 579 | 535 | 44 | 7.6% |
+| Archivaria | 485 | 381 | 104 | 21.4% |
+| Archives and Manuscripts | 247 | 182 | 65 | 26.3% |
+| Records Management Journal | 657 | 492 | 165 | 25.1% |
+
+---
+
+```
+extract_columns.py
 │
-│   저널별 현황 (전체 / 초록 포함):
-│     American Archivist ············ 2,079건 / 초록 829건
-│     Archival Science ·············· 579건 / 초록 535건
-│     Archivaria ···················· 485건 / 초록 381건
-│     Archives and Manuscripts ····· 247건 / 초록 182건
-│     Records Management Journal ··· 657건 / 초록 492건
+│  title, author, year, abstract 컬럼 추출
 │
+└─→ 저널별 원본 CSV (전기간)
+      ├── American_Archivist.csv ············ 2,079건
+      ├── Archival_Science.csv ·············· 579건
+      ├── Archivaria.csv ··················· 485건
+      ├── Archives_and_Manuscripts.csv ····· 247건
+      └── Records_Management_Journal.csv ··· 657건
+```
+
+---
+
+```
+filter_2001.py
 │
-│  extract_columns.py
-│  : title, author, year, abstract 컬럼 추출
+│  2001년 이후 데이터만 필터링
+│  * Archives and Manuscripts: Scopus 색인 시작이 2013년이므로 별도 필터링 불필요
 │
-├─→ 저널별 원본 CSV (전기간)
-│     ├── American_Archivist.csv ············ 2,079건
-│     ├── Archival_Science.csv ·············· 579건
-│     ├── Archivaria.csv ··················· 485건
-│     ├── Archives_and_Manuscripts.csv ····· 247건
-│     └── Records_Management_Journal.csv ··· 657건
+└─→ 저널별 2001년 이후 CSV
+      ├── American_Archivist_2001.csv ·········· 571건 (-1,508)
+      ├── Archival_Science_2001.csv ············ 579건 (-0)
+      ├── Archivaria_2001.csv ················· 374건 (-111)
+      └── Records_Management_Journal_2001.csv · 510건 (-147)
+```
+
+---
+
+```
+check_abstracts.py          → 초록 누락 현황 확인
+extract_missing_abstracts.py → 누락 목록 추출
 │
+└─→ missing_abstracts.csv (369건)
+```
+
+| 저널 | 전체 | 초록 있음 | 초록 없음 | 누락률 |
+|------|-----:|--------:|--------:|------:|
+| Archival Science | 579 | 535 | 44 | 7.6% |
+| Archivaria | 374 | 323 | 51 | 13.6% |
+| Records Management Journal | 510 | 408 | 102 | 20.0% |
+| American Archivist | 571 | 399 | 172 | 30.1% |
+| **합계** | **2,034** | **1,665** | **369** | **18.1%** |
+
+> 누락 369건 전수 검토 결과, 대부분 editorial, letter to the editor, book review 등 단편 형식으로 확인되어 분석 대상에서 제외하였다.
+
+---
+
+```
+extract_with_abstracts.py
 │
-│  filter_2001.py
-│  : 2001년 이후 데이터만 필터링
-│
-├─→ 저널별 2001년 이후 CSV
-│     ├── American_Archivist_2001.csv ·········· 571건 (-1,508)
-│     ├── Archival_Science_2001.csv ············ 579건 (-0)
-│     ├── Archivaria_2001.csv ················· 374건 (-111)
-│     └── Records_Management_Journal_2001.csv · 510건 (-147)
-│     * Archives and Manuscripts: Scopus 색인 시작이 2013년이므로 별도 필터링 불필요
-│
-│
-│  check_abstracts.py → 초록 누락 현황 확인
-│  extract_missing_abstracts.py → 누락 목록 추출
-│
-├─→ missing_abstracts.csv (369건)
-│
-│     저널명                    전체    초록있음   초록없음   누락률
-│     ─────────────────────────────────────────────────────
-│     Archival Science          579      535       44     7.6%
-│     Archivaria                374      323       51    13.6%
-│     Records Management J.     510      408      102    20.0%
-│     American Archivist        571      399      172    30.1%
-│     ─────────────────────────────────────────────────────
-│     합계                     2,034    1,665      369    18.1%
-│
-│
-│  extract_with_abstracts.py
-│  : 초록 있는 항목만 추출
+│  초록 있는 항목만 추출
 │
 └─→ 최종 분석용 CSV (2001~ / 초록 포함)
       ├── American_Archivist_2001_abstracts_only.csv ·········· 399건
@@ -174,7 +202,49 @@ scopus_abstract_collector.py
 
 ---
 
+```
+01_basic_cleaning.py
+│
+│  소문자화, HTML 태그·특수문자 제거, 공백 정규화
+│
+└─→ 저널별 정제 CSV
+      ├── American_Archivist_2001_cleaned.csv
+      ├── Archival_Science_2001_cleaned.csv
+      ├── Archivaria_2001_cleaned.csv
+      └── Records_Management_Journal_2001_cleaned.csv
+```
+
+---
+
+```
+02_tokenization.py
+│
+│  토큰화, 표제어 추출(spaCy 3.7.4), 품사 필터링
+│  (명사·고유명사·동사·형용사 유지, 2글자 이하 제거)
+│
+└─→ 저널별 토큰화 CSV
+      ├── American_Archivist_2001_tokenized.csv
+      ├── Archival_Science_2001_tokenized.csv
+      ├── Archivaria_2001_tokenized.csv
+      └── Records_Management_Journal_2001_tokenized.csv
+```
+
+---
+
+```
+frequency_analysis.py
+│
+│  전체 단어 빈도 분석 (불용어 결정 근거 데이터 생성)
+│  총 9,964개 고유 단어 / 단어별 전체빈도·문서빈도·저널별빈도 포함
+│
+└─→ frequency_analysis.csv
+```
+
+---
+
 ## 3. 스크립트 설명
+
+### 데이터 수집
 
 | 실행 순서 | 파일명 | 기능 |
 |:---:|--------|------|
@@ -184,6 +254,14 @@ scopus_abstract_collector.py
 | 4 | `check_abstracts.py` | 저널별 초록 누락 현황 확인 |
 | 5 | `extract_missing_abstracts.py` | 초록 누락 항목 목록 추출 |
 | 6 | `extract_with_abstracts.py` | 초록 있는 항목만 추출 |
+
+### 전처리
+
+| 실행 순서 | 파일명 | 기능 |
+|:---:|--------|------|
+| 7 | `01_basic_cleaning.py` | 기본 정제 (소문자화, 특수문자 제거, 공백 정규화) |
+| 8 | `02_tokenization.py` | 토큰화 및 표제어 추출 (spaCy 3.7.4) |
+| 9 | `frequency_analysis.py` | 전체 단어 빈도 분석 |
 
 ---
 
@@ -198,7 +276,8 @@ scopus_abstract_collector.py
 ### 환경 설정
 
 ```bash
-pip install requests pandas python-dotenv
+pip install requests pandas python-dotenv spacy
+python3 -m spacy download en_core_web_sm
 ```
 
 프로젝트 루트에 `.env` 파일을 생성하고 API 키를 입력합니다:
@@ -227,6 +306,15 @@ python3 extract_missing_abstracts.py
 
 # 6) 초록 있는 항목만 추출
 python3 extract_with_abstracts.py
+
+# 7) 기본 정제
+python3 01_basic_cleaning.py
+
+# 8) 토큰화 및 표제어 추출
+python3 02_tokenization.py
+
+# 9) 단어 빈도 분석
+python3 frequency_analysis.py
 ```
 
 ---
@@ -235,7 +323,7 @@ python3 extract_with_abstracts.py
 
 - 수집 중단 시 `scopus_progress.json`을 통해 이어받기 가능
 - Scopus API Rate Limit 초과 시 자동 60초 대기 후 재시도
-- Archives and Manuscripts는 Scopus 색인 범위가 2013~2024년이며 2022년 플랫폼 이전으로 전체 기간 수집이 불가하여 최종 분석에서 제외
+- *Archives and Manuscripts*는 Scopus 색인 범위가 2013~2024년이며 2022년 플랫폼 이전으로 전체 기간 수집이 불가하여 최종 분석에서 제외
 
 ---
 
@@ -243,6 +331,9 @@ python3 extract_with_abstracts.py
 
 | 날짜 | 작업 내용 |
 |------|-----------|
-| 2025-04-01 | SCImago JR에서 2024년 SJR 데이터 다운로드, 기록학 분야 상위 5개 저널 선정 |
-| 2025-04-01 | Scopus API를 통한 5개 저널 전기간 메타데이터 및 초록 수집 (4,047건) |
-| 2025-04-01 | 저널별 컬럼 추출, 2001년 이후 필터링, 초록 유무 분리 완료 (최종 1,665건) |
+| 2026-04-01 | SCImago JR에서 2024년 SJR 데이터 다운로드, 기록학 분야 상위 5개 저널 선정 |
+| 2026-04-01 | Scopus API를 통한 5개 저널 전기간 메타데이터 및 초록 수집 (4,047건) |
+| 2026-04-01 | 저널별 컬럼 추출, 2001년 이후 필터링, 초록 유무 분리 완료 (최종 1,665건) |
+| 2026-04-06 | 전처리 브랜치(preprocessing) 생성, 기본 정제 및 토큰화 완료 |
+| 2026-04-06 | 단어 빈도 분석 실행 (9,964개 고유 단어), 불용어 제거 보류 결정 |
+| 2026-04-06 | 코퍼스 방법론 문서화 완료 (20260406_methodology_corpus.md) |
