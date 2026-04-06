@@ -1,0 +1,17 @@
+# API keys
+.env
+key.env
+
+# Data files (regenerable via scripts)
+*.csv
+*.json
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Misc
+*.textClipping
